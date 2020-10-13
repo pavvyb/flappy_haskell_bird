@@ -41,39 +41,78 @@ data GameMode = Wait | Progress deriving (Eq)
 --     | otherwise = y + 20 * time
 
 
-type World = (GameMode, Height)
+type World = (GameMode, Height, Step)
 type Height = Float
+type Step = Float
 
 main :: IO ()
 main = play
     windowDisplay
     rose
     60
-    (Wait, 0)
+    (Wait, 0, 0.4)
     drawingFunc
     inputHandler
     updateFunc
 
 drawingFunc :: World -> Picture
-drawingFunc (_, height) = translate 0 height (color yellow (circleSolid 20))
+drawingFunc (_, height, _) = translate 0 height (color yellow (circleSolid 20))
 
 inputHandler :: Event -> World -> World
-inputHandler (EventKey (SpecialKey KeyEnter) Down _ _) (_, height) = (Progress, height)
+inputHandler (EventKey (SpecialKey KeyEnter) Down _ _) (_, height, _) = (Progress, height, 0.4)
 -- inputHandler (EventKey (SpecialKey KeySpace) Down _ _) (mode, height) = (x + 10, y)
 -- inputHandler _ (mode, height) = (Wait, height)
 inputHandler _ w = w
 
 
+
 updateFunc :: Float -> World -> World
-updateFunc time (mode, height) = world
+updateFunc time (mode, height, step) = world
     where
         world
-            | mode == Progress  = (mode, if (height - time * 25) > -100 then (height - time * 25) else -100)
-            | otherwise         = (mode, flooredTime) 
+            | mode == Progress  = (mode, if (height - time * 25) > -100 then (height - time * 25) else -100, step)
+            | otherwise         = (mode, height + step, if height > 8 then (-0.4) else if height < 0 then 0.4 else step) 
                 where
-                    flooredTime
-                        | fromIntegral (floor(time) `mod` 10) < 5 = height + sin (time * 10)
-                        | otherwise                               = height - sin (time * 10)
+                    -- ska :: Float
+                    -- ska = 1
+                    -- currentStep = step height 1
+                    -- step :: Float -> Float -> Float
+                    -- step h s
+                    --     | h >= 100  && s == 1       = -s * 2
+                    --     | h <= 0    && s == -1      = -s * 2
+                    --     | otherwise                 = s
+
+                    
+
+
+
+-- updateFunc :: Float -> World -> World
+-- updateFunc time (mode, height)
+--     | val < 3             = (mode, height + 0.0001) 
+--     | val >= 3 && val < 4 = (mode, height - 1) 
+--     | val >= 4 && val < 7 = (mode, height + 1)                  
+--     | otherwise            = (mode, height - 1) 
+--         where
+--         val = fromIntegral (floor(time) `mod` 8)
+--                 -- direction = if height >= 100 then -1 else if height < 0 then 1 else 0 
+--                 -- flooredTime = height + direction * 2 + 1tion = if height >= 100 then -1 else if height < 0 then 1 else 0 
+--                 -- flooredTime = height + direction * 2 + 1
+--                 -- flooredTime
+--                 --     | height < 100     = height + 20
+--                 --     | height >= 100    = height - 6
+                
+                    
+
+-- updateFunc :: Float -> World -> World
+-- updateFunc time (mode, height) = world
+--     where
+--         world
+--             | mode == Progress  = (mode, if (height - time * 25) > -100 then (height - time * 25) else -100)
+--             | otherwise         = (mode, flooredTime) 
+--                 where
+--                     flooredTime
+--                         | height >= 100    = height - time * 25
+--                         | height < 100     = height + time * 25
 -- updateFunc :: Float -> World -> World
 -- updateFunc time (mode, height) = world
 --     where

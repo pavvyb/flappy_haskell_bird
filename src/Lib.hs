@@ -60,10 +60,10 @@ main = play
     updateFunc
 
 drawingFunc :: World -> Picture
-drawingFunc (Game Wait score bestScore, Bird height step, _) = bird height
-drawingFunc (Game Progress score bestScore, Bird height step, pipes) = drawScore score <> bird height <> unionPicture (drawPipes pipes)
+drawingFunc (Game Wait score bestScore, Bird height step, _) = bird height <> worldFloor
+drawingFunc (Game Progress score bestScore, Bird height step, pipes) = drawScore score <> bird height <> worldFloor <> unionPicture (drawPipes pipes)
 -- drawingFunc (Game Progress score bestScore, Bird height step, pipes) = drawScore score <> bird height <> drawPipe (initialPipe (100))
-drawingFunc (Game EndGame score bestScore, Bird height step, _) = drawScoreBoard score <> bird height
+drawingFunc (Game EndGame score bestScore, Bird height step, pipes) = drawScoreBoard score <> bird height <> worldFloor <> unionPicture (drawPipes pipes)
 
 bird :: Height -> Picture
 bird height = translate (-40) height (color yellow (circleSolid 20))
@@ -74,6 +74,9 @@ drawScore score = scale 0.5 0.5 (translate (-35) 80 (Text (show score)))
 drawScoreBoard :: Int -> Picture
 drawScoreBoard score = color orange (rectangleSolid 100 200) <> scale 0.25 0.25 (translate (-35) (-20) (Text (show score)))
 
+worldFloor :: Picture
+worldFloor = translate 0 (-250) $ color azure $ rectangleSolid 500 100
+
 -- Pipe
 data Pipe = Pipe
     { heightFromFloor :: Height
@@ -82,7 +85,7 @@ data Pipe = Pipe
 
 inputHandler :: Event -> World -> World
 inputHandler (EventKey (SpecialKey KeyEnter) Down _ _) (Game mode score bestScore, Bird height step, pipes)
-    | mode == Wait = (Game Progress 0 bestScore, Bird height 0.4, pipes)
+    | mode == Wait = (Game Progress 0 bestScore, Bird height 0.4, initialPipes)
     | otherwise    = (Game mode score bestScore, Bird height step, pipes)
 inputHandler (EventKey (SpecialKey KeySpace) Down _ _) world = jump world
 inputHandler _ w = w
@@ -94,7 +97,7 @@ jump world = world
 
 checkCollisionWithFloor :: Height -> Bool
 checkCollisionWithFloor height
-    | height > -200 = False
+    | height > -200 + 20 = False
     | otherwise     = True
 
 checkCollisionWithPipes :: [Pipe] -> Bool

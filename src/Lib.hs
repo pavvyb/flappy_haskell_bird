@@ -92,6 +92,19 @@ checkCollisionWithFloor height
 floor :: Height
 floor = -200
 
+pipesAllowedHeights :: (Height, Height)
+pipesAllowedHeights = (-100, 100)
+
+gapOnPipe :: Float
+gapOnPipe = 100
+
+gapBetweenPipes :: Float
+gapBetweenPipes = 300
+
+pipeWidth :: Float
+pipeWidth = 50
+
+
 updateFunc :: Float -> World -> World
 updateFunc time (Game mode score bestScore, Bird height step, pipes) = world
     where

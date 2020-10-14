@@ -60,7 +60,6 @@ main = play
 drawingFunc :: World -> Picture
 drawingFunc (Game Wait score bestScore, Bird height step, _) = bird height <> worldFloor
 drawingFunc (Game Progress score bestScore, Bird height step, pipes) = drawScore score <> bird height <> worldFloor <> unionPicture (drawPipes pipes)
--- drawingFunc (Game Progress score bestScore, Bird height step, pipes) = drawScore score <> bird height <> drawPipe (initialPipe (100))
 drawingFunc (Game EndGame score bestScore, Bird height step, pipes) = drawScoreBoard score <> bird height <> worldFloor <> unionPicture (drawPipes pipes)
 
 bird :: Height -> Picture
@@ -117,7 +116,6 @@ pipeWidth :: Float
 pipeWidth = 50
 
 
-
 drawPipes :: [Pipe] -> [Picture]
 drawPipes pipes = map drawPipe pipes
 
@@ -138,9 +136,7 @@ unionPicture (x:xs)   = x <> unionPicture xs
 
 updatePipes :: Float -> [Pipe] -> [Pipe]
 updatePipes _ []        = []
-updatePipes time pipes  = map changePipeHorizontalPosition pipes
--- updatePipes time [(Pipe heightFromFloor horizontalPosition)]     = [(Pipe heightFromFloor (horizontalPosition - 1))]
--- updatePipes time pipes = pipes
+updatePipes _ pipes  = map changePipeHorizontalPosition pipes
 
 changePipeHorizontalPosition :: Pipe -> Pipe
 changePipeHorizontalPosition (Pipe heightFromFloor horizontalPosition) = (Pipe heightFromFloor (horizontalPosition - 1.5))
@@ -158,11 +154,9 @@ updateFunc time (Game mode score bestScore, Bird height step, pipes) = world
                         | checkCollisionWithFloor newHeight == False = (Game Progress score bestScore,
                                                                         Bird (height - time * 100) step,
                                                                         updatePipes time pipes)
-                                                                        -- pipes)
                         | otherwise                                  = (Game EndGame score bestScore,
-                                                                        Bird (-200) step,
+                                                                        Bird (-200 + 20) step,
                                                                         updatePipes time pipes)
-                                                                        -- pipes)
                     
                     endGameWorld = (Game mode score bestScore, Bird height 0.4, pipes)
                     waitWorld    = (Game mode score bestScore, Bird (height + step) waitStep, pipes)

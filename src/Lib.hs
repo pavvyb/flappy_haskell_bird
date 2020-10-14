@@ -40,9 +40,9 @@ initialPipe :: Height -> Pipe
 initialPipe height = Pipe height 100
 
 initialPipes :: [Pipe]
--- initialPipes = repeat (initialPipe height)
-initialPipes = [initialPipe height]
--- initialPipes = [initialPipe height, initialPipe height, initialPipe height, initialPipe height, initialPipe height, initialPipe height]
+initialPipes = map (\v -> (Pipe height (v * 100))) [0,3..9]
+-- initialPipes = [initialPipe height]
+-- -- initialPipes = [initialPipe height, initialPipe height, initialPipe height, initialPipe height, initialPipe height, initialPipe height]
     where
         height = -50
 
@@ -130,25 +130,6 @@ drawPipe (Pipe heightFromFloor horizontalPosition) = bottomPipe <> topPipe
         tHeight = 1000
         tY = -200 + bHeight + 100 + tHeight / 2
         topPipe = translate horizontalPosition tY $ color green $ rectangleSolid pipeWidth tHeight
-        -- bottomHeight
-        --     | height < 0 = 200 - (abs height)
-        --     | otherwise  = height + 200
-        -- topHeight       = bottomHeight + 100
-        -- bottomPipe      = translate x (-200 + bottomHeight / 2)                        (color green (rectangleSolid pipeWidth bottomHeight))
-        -- topPipe         = translate x (topHeight)                   (color green (rectangleSolid pipeWidth 0))
-        -- bottomPipe = color green (translate x (-200) (polygon (getBottomPipe (Pipe (-100) x))))
-        -- -- topPipe    = blank
-        -- topPipe    = color green (translate x (0) (polygon (getTopPipe (Pipe 100 x))))
--- drawPipe (Pipe height x) = bottomPipe <> topPipe
---     where
---         bottomPipe = color green (translate x (-200) (polygon (getBottomPipe (Pipe height x))))
---         topPipe    = color green (translate x (height + 100) (polygon (getBottomPipe (Pipe 100 x))))
-
--- getTopPipe :: Pipe -> Path
--- getTopPipe (Pipe height x) = rectang pipeWidth (height + 100)
-
--- getBottomPipe :: Pipe -> Path
--- getBottomPipe (Pipe height x) = rectanglePath pipeWidth height
 
 unionPicture :: [Picture] -> Picture
 unionPicture []     = blank
@@ -156,8 +137,12 @@ unionPicture (x:xs)   = x <> unionPicture xs
 
 updatePipes :: Float -> [Pipe] -> [Pipe]
 updatePipes _ []        = []
-updatePipes time [(Pipe heightFromFloor horizontalPosition)]     = [(Pipe heightFromFloor (horizontalPosition - 1))]
+updatePipes time pipes  = map changePipeHorizontalPosition pipes
+-- updatePipes time [(Pipe heightFromFloor horizontalPosition)]     = [(Pipe heightFromFloor (horizontalPosition - 1))]
 -- updatePipes time pipes = pipes
+
+changePipeHorizontalPosition :: Pipe -> Pipe
+changePipeHorizontalPosition (Pipe heightFromFloor horizontalPosition) = (Pipe heightFromFloor (horizontalPosition - 1.5))
 
 updateFunc :: Float -> World -> World
 updateFunc time (Game mode score bestScore, Bird height step, pipes) = world

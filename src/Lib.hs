@@ -40,9 +40,7 @@ initialPipe :: Height -> Pipe
 initialPipe height = Pipe height 100
 
 initialPipes :: [Pipe]
-initialPipes = map (\v -> (Pipe height (v * 100))) [0,3..9]
--- initialPipes = [initialPipe height]
--- -- initialPipes = [initialPipe height, initialPipe height, initialPipe height, initialPipe height, initialPipe height, initialPipe height]
+initialPipes = map (\v -> (Pipe height (v * 100 + 300))) [0,3..9]
     where
         height = -50
 
@@ -110,7 +108,7 @@ pipesAllowedHeights :: (Height, Height)
 pipesAllowedHeights = (-100, 100)
 
 gapOnPipe :: Float
-gapOnPipe = 100
+gapOnPipe = 150
 
 gapBetweenPipes :: Float
 gapBetweenPipes = 300
@@ -131,7 +129,7 @@ drawPipe (Pipe heightFromFloor horizontalPosition) = bottomPipe <> topPipe
         bottomPipe = translate horizontalPosition bY $ color green $ rectangleSolid pipeWidth bHeight
 
         tHeight = 1000
-        tY = -200 + bHeight + 100 + tHeight / 2
+        tY = -200 + bHeight + 150 + tHeight / 2
         topPipe = translate horizontalPosition tY $ color green $ rectangleSolid pipeWidth tHeight
 
 unionPicture :: [Picture] -> Picture

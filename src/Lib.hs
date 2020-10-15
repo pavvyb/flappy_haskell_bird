@@ -137,17 +137,22 @@ updatePipes :: Float -> [Pipe] -> [Pipe]
 updatePipes _ [] = []
 updatePipes time ((Pipe height x) : pipes)
   | currentX > (x - (-250) + pipeWidth)  = updatePipes (time - x / 100) pipes
---   | currentX > (x - (-250) + 50)  = updatePipes (time - x / 100) pipes
   | otherwise = (Pipe height (x - currentX)) : pipes
   where
     currentX  = time * 100
-    -- currentX  = time * 100
 
-updateScore :: [Pipe] -> Score -> Score
-updateScore [] currentScore = currentScore
-updateScore ((Pipe _ x):_) currentScore
-    | x < -20 && x > -21  = currentScore + 1
-    | otherwise = currentScore
+updateScore :: [Pipe] -> Score -> Float -> Score
+updateScore [] currentScore _ = currentScore
+updateScore pipes currentScore time
+    | passed = currentScore + 1
+    | otherwise  = currentScore
+        where
+            passed :: Bool
+            passed = not (null (takeWhile now (dropWhile was (pipesOnMap pipes))))
+            now :: Pipe -> Bool
+            now (Pipe _ x) = x - time * 100 < -20
+            was :: Pipe -> Bool
+            was (Pipe _ x)= x < -20
 
 collisionWithPipes :: [Pipe] -> Height -> Bool
 collisionWithPipes pipes height = or (map (collisionWithPipe height) (takeWhile (\(Pipe _ x) -> x < 250) pipes))
@@ -156,7 +161,6 @@ collisionWithPipes pipes height = or (map (collisionWithPipe height) (takeWhile 
 collisionWithPipe :: Height -> Pipe -> Bool
 collisionWithPipe birdHeight (Pipe h x) 
     | x <= (-20+ pipeWidth/2) && x >= (-60 - pipeWidth/2) && onBadHeight = True
-    -- | x <= (-20+ 50/2) && x >= (-60 - 50/2) && onBadHeight = True
     | otherwise             = False
         where
             onBadHeight = birdHeight <= (h + 20) || birdHeight >= (h + 150 - 20)
@@ -170,7 +174,7 @@ updateFunc time (Game mode score bestScore, Bird height step, pipes) = world
             | otherwise         = waitWorld
                 where
                     newHeight = height - time * 25
-                    newScore = updateScore pipes score
+                    newScore = updateScore pipes score time
                     progressWorld
                         | stopFactor == False =                        (Game Progress newScore bestScore,
                                                                         Bird (height - time * 100) step,
@@ -186,7 +190,6 @@ updateFunc time (Game mode score bestScore, Bird height step, pipes) = world
 
                     endGameWorld = (Game mode score bestScore, Bird height 0.4, pipes)
                     waitWorld    = (Game mode score bestScore, Bird (boundedHeight height + step) waitStep, tail (pipes))
-                    -- waitWorld    = (Game mode score bestScore, Bird (height + step) waitStep, tail (pipes))
                     boundedHeight h = if h < -8 then 0 else h
                     waitStep
                         | height > 8 = -0.4

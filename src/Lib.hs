@@ -153,7 +153,7 @@ collisionWithPipes pipes height = or (map (collisionWithPipe height) (takeWhile 
 
 collisionWithPipe :: Height -> Pipe -> Bool
 collisionWithPipe birdHeight (Pipe h x) 
-    | x <= (-20+ 50/2) && x >= (-60 + 50/2) && onBadHeight = True
+    | x <= (-20+ 50/2) && x >= (-60 - 50/2) && onBadHeight = True
     | otherwise             = False
         where
             onBadHeight = birdHeight <= (h + 20) || birdHeight >= (h + 150 - 20)
@@ -182,7 +182,9 @@ updateFunc time (Game mode score bestScore, Bird height step, pipes) = world
 
 
                     endGameWorld = (Game mode score bestScore, Bird height 0.4, pipes)
-                    waitWorld    = (Game mode score bestScore, Bird (height + step) waitStep, tail (pipes))
+                    waitWorld    = (Game mode score bestScore, Bird (boundedHeight height + step) waitStep, tail (pipes))
+                    -- waitWorld    = (Game mode score bestScore, Bird (height + step) waitStep, tail (pipes))
+                    boundedHeight h = if h < -8 then 0 else h
                     waitStep
                         | height > 8 = -0.4
                         | height < 0 = 0.4

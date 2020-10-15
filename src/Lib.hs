@@ -52,7 +52,7 @@ main = do
 
 drawingFunc :: World -> Picture
 drawingFunc (Game Wait score bestScore, Bird height step, _) = bird height <> worldFloor
-drawingFunc (Game Progress score bestScore, Bird height step, pipes) = drawScore score <> bird height <> worldFloor <> unionPicture (drawPipes pipes)
+drawingFunc (Game Progress score bestScore, Bird height step, pipes) = bird height <> worldFloor <> unionPicture (drawPipes pipes) <> drawScore score
 drawingFunc (Game EndGame score bestScore, Bird height step, pipes) = worldFloor <> unionPicture (drawPipes pipes) <> drawScoreBoard score bestScore <> bird height 
 
 bird :: Height -> Picture
@@ -76,10 +76,6 @@ data Pipe = Pipe
 
 
 inputHandler :: Event -> World -> World
--- inputHandler (EventKey (SpecialKey KeyEnter) Down _ _) (Game mode score bestScore, Bird height step, pipes)
---     | mode == Wait = (Game Progress 0 bestScore, Bird height 0.4, pipes)
---     | otherwise    = (Game mode score bestScore, Bird height step, pipes)
--- inputHandler (EventKey (SpecialKey KeySpace) Down _ _) world = jump world
 inputHandler (EventKey (SpecialKey KeySpace) Down _ _) world = jump world
 inputHandler _ w = w
 
@@ -156,12 +152,11 @@ updateScore pipes currentScore time
             was (Pipe _ x)= x < -20
 
 collisionWithPipes :: [Pipe] -> Height -> Bool
-collisionWithPipes pipes height = or (map (collisionWithPipe height) (takeWhile (\(Pipe _ x) -> x < 250) pipes))
+collisionWithPipes pipes height = or (map (collisionWithPipe height) (takeWhile (\(Pipe _ x) -> x < 250) (pipesOnMap pipes)))
 
 
 collisionWithPipe :: Height -> Pipe -> Bool
 collisionWithPipe birdHeight (Pipe h x) 
-    -- | x <= (-20+ pipeWidth/2) && x >= (-60 - pipeWidth/2) && onBadHeight = True
     | onBadX && onBadHeight = True
     | otherwise             = False
         where

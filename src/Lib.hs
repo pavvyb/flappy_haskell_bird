@@ -41,10 +41,6 @@ initialPipe height = Pipe height 300
 
 initialPipes :: StdGen -> [Pipe]
 initialPipes stdGen = map initialPipe (randomRs pipesAllowedHeights stdGen)
--- initialPipes stdGen = map initialPipe (randomRs pipesAllowedHeights stdGen)
--- initialPipes = map (\v -> (Pipe height (v * 100 + 300))) [0,3..9]
---     where
---         height = -50
 
 initialWorld :: StdGen -> World
 initialWorld g = (initialGame, initialBird, initialPipes g)
@@ -69,9 +65,6 @@ drawScoreBoard :: Score -> Score -> Picture
 drawScoreBoard score bestScore = color orange (rectangleSolid 100 200) 
                                 <>  translate (-8) (10) (scale 0.25 0.25 (Text (show score)))
                                 <>  translate (-8) (-40) (scale 0.25 0.25 (Text (show bestScore)))
-                                -- <> scale 0.25 0.25 (translate (-35) (-250) (Text (show bestScore)))
-                                -- <> scale 0.25 0.25 (translate (-35) (-20) (Text (show score)))
-                                -- <> scale 0.25 0.25 (translate (-35) (-250) (Text (show bestScore)))
 
 worldFloor :: Picture
 worldFloor = translate 0 (-250) $ color azure $ rectangleSolid 500 100
@@ -142,9 +135,9 @@ unionPicture (x:xs)   = x <> unionPicture xs
 
 updatePipes :: Float -> [Pipe] -> [Pipe]
 updatePipes _ [] = []
-updatePipes time ((Pipe height x) : gates)
-  | currentX > (x - (-250) + 50)  = updatePipes (time - x / 100) gates
-  | otherwise = (Pipe height (x - currentX)) : gates
+updatePipes time ((Pipe height x) : pipes)
+  | currentX > (x - (-250) + 50)  = updatePipes (time - x / 100) pipes
+  | otherwise = (Pipe height (x - currentX)) : pipes
   where
     currentX  = time * 100
 

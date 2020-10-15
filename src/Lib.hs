@@ -76,16 +76,17 @@ data Pipe = Pipe
 
 
 inputHandler :: Event -> World -> World
-inputHandler (EventKey (SpecialKey KeyEnter) Down _ _) (Game mode score bestScore, Bird height step, pipes)
-    | mode == Wait = (Game Progress 0 bestScore, Bird height 0.4, pipes)
-    | otherwise    = (Game mode score bestScore, Bird height step, pipes)
+-- inputHandler (EventKey (SpecialKey KeyEnter) Down _ _) (Game mode score bestScore, Bird height step, pipes)
+--     | mode == Wait = (Game Progress 0 bestScore, Bird height 0.4, pipes)
+--     | otherwise    = (Game mode score bestScore, Bird height step, pipes)
+-- inputHandler (EventKey (SpecialKey KeySpace) Down _ _) world = jump world
 inputHandler (EventKey (SpecialKey KeySpace) Down _ _) world = jump world
 inputHandler _ w = w
 
 jump :: World -> World
-jump (Game Progress score bestScore, Bird height step, pipes)      = (Game Progress score bestScore, Bird (height + 65) step, pipes)
+jump (Game Wait _ bestScore, Bird height _, pipes)                 = (Game Progress 0 bestScore, Bird height 350, pipes)
+jump (Game Progress score bestScore, Bird height step, pipes)      = (Game Progress score bestScore, Bird height (if step < 0 then 350 else step), pipes)
 jump (Game EndGame  score bestScore, bird, pipes)                  = (Game Wait     score bestScore, bird, pipes)
-jump world = world
 
 collisionWithFloor :: Height -> Bool
 collisionWithFloor height
@@ -136,10 +137,10 @@ unionPicture (x:xs)   = x <> unionPicture xs
 updatePipes :: Float -> [Pipe] -> [Pipe]
 updatePipes _ [] = []
 updatePipes time ((Pipe height x) : pipes)
-  | currentX > (x - (-250) + pipeWidth)  = updatePipes (time - x / 100) pipes
+  | currentX > (x - (-250) + pipeWidth)  = updatePipes (time - x / 150) pipes
   | otherwise = (Pipe height (x - currentX)) : pipes
   where
-    currentX  = time * 100
+    currentX  = time * 150
 
 updateScore :: [Pipe] -> Score -> Float -> Score
 updateScore [] currentScore _ = currentScore
@@ -150,7 +151,7 @@ updateScore pipes currentScore time
             passed :: Bool
             passed = not (null (takeWhile now (dropWhile was (pipesOnMap pipes))))
             now :: Pipe -> Bool
-            now (Pipe _ x) = x - time * 100 < -20
+            now (Pipe _ x) = x - time * 150 < -20
             was :: Pipe -> Bool
             was (Pipe _ x)= x < -20
 
@@ -160,10 +161,19 @@ collisionWithPipes pipes height = or (map (collisionWithPipe height) (takeWhile 
 
 collisionWithPipe :: Height -> Pipe -> Bool
 collisionWithPipe birdHeight (Pipe h x) 
-    | x <= (-20+ pipeWidth/2) && x >= (-60 - pipeWidth/2) && onBadHeight = True
+    -- | x <= (-20+ pipeWidth/2) && x >= (-60 - pipeWidth/2) && onBadHeight = True
+    | onBadX && onBadHeight = True
     | otherwise             = False
         where
             onBadHeight = birdHeight <= (h + 20) || birdHeight >= (h + 150 - 20)
+            onBadX
+                | leftPipeX <= badMaxX && rightPipeX >= badMinX = True
+                | otherwise                     = False
+                    where
+                        badMinX = -60
+                        badMaxX = -20
+                        leftPipeX = x - pipeWidth / 2
+                        rightPipeX = x + pipeWidth / 2
 
 updateFunc :: Float -> World -> World
 updateFunc time (Game mode score bestScore, Bird height step, pipes) = world
@@ -173,11 +183,12 @@ updateFunc time (Game mode score bestScore, Bird height step, pipes) = world
             | mode == EndGame   = endGameWorld
             | otherwise         = waitWorld
                 where
-                    newHeight = height - time * 25
+                    newHeight = height + time * newStep
+                    newStep = step - time * 1000
                     newScore = updateScore pipes score time
                     progressWorld
                         | stopFactor == False =                        (Game Progress newScore bestScore,
-                                                                        Bird (height - time * 100) step,
+                                                                        Bird newHeight newStep,
                                                                         updatePipes time pipes)
                         | otherwise                                  = (Game EndGame newScore (if bestScore < newScore then newScore else bestScore),
                                                                         Bird (-200 + 20) step,

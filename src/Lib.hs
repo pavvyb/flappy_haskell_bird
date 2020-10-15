@@ -53,7 +53,7 @@ main = do
 drawingFunc :: World -> Picture
 drawingFunc (Game Wait score bestScore, Bird height step, _) = bird height <> worldFloor
 drawingFunc (Game Progress score bestScore, Bird height step, pipes) = drawScore score <> bird height <> worldFloor <> unionPicture (drawPipes pipes)
-drawingFunc (Game EndGame score bestScore, Bird height step, pipes) =  bird height <> worldFloor <> unionPicture (drawPipes pipes) <> drawScoreBoard score bestScore
+drawingFunc (Game EndGame score bestScore, Bird height step, pipes) = worldFloor <> unionPicture (drawPipes pipes) <> drawScoreBoard score bestScore <> bird height 
 
 bird :: Height -> Picture
 bird height = translate (-40) height (color yellow (circleSolid 20))
@@ -87,8 +87,8 @@ jump (Game Progress score bestScore, Bird height step, pipes)      = (Game Progr
 jump (Game EndGame  score bestScore, bird, pipes)                  = (Game Wait     score bestScore, bird, pipes)
 jump world = world
 
-checkCollisionWithFloor :: Height -> Bool
-checkCollisionWithFloor height
+collisionWithFloor :: Height -> Bool
+collisionWithFloor height
     | height > -200 + 20 = False
     | otherwise     = True
 
@@ -153,7 +153,7 @@ collisionWithPipes pipes height = or (map (collisionWithPipe height) (takeWhile 
 
 collisionWithPipe :: Height -> Pipe -> Bool
 collisionWithPipe birdHeight (Pipe h x) 
-    | x <= -20 && x >= -60 && onBadHeight = True
+    | x <= (-20+ 50/2) && x >= (-60 + 50/2) && onBadHeight = True
     | otherwise             = False
         where
             onBadHeight = birdHeight <= (h + 20) || birdHeight >= (h + 150 - 20)
@@ -177,7 +177,7 @@ updateFunc time (Game mode score bestScore, Bird height step, pipes) = world
                                                                         updatePipes time pipes)
                     stopFactor :: Bool
                     stopFactor
-                        | collisionWithPipes pipes newHeight || checkCollisionWithFloor newHeight = True
+                        | collisionWithPipes pipes newHeight || collisionWithFloor newHeight = True
                         | otherwise = False
 
 

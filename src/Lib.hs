@@ -105,7 +105,7 @@ gapBetweenPipes :: Float
 gapBetweenPipes = 300
 
 pipeWidth :: Float
-pipeWidth = 50
+pipeWidth = 75
 
 pipesOnMap :: [Pipe] -> [Pipe]
 pipesOnMap pipes = set 0 pipes
@@ -136,10 +136,12 @@ unionPicture (x:xs)   = x <> unionPicture xs
 updatePipes :: Float -> [Pipe] -> [Pipe]
 updatePipes _ [] = []
 updatePipes time ((Pipe height x) : pipes)
-  | currentX > (x - (-250) + 50)  = updatePipes (time - x / 100) pipes
+  | currentX > (x - (-250) + pipeWidth)  = updatePipes (time - x / 100) pipes
+--   | currentX > (x - (-250) + 50)  = updatePipes (time - x / 100) pipes
   | otherwise = (Pipe height (x - currentX)) : pipes
   where
     currentX  = time * 100
+    -- currentX  = time * 100
 
 updateScore :: [Pipe] -> Score -> Score
 updateScore [] currentScore = currentScore
@@ -153,7 +155,8 @@ collisionWithPipes pipes height = or (map (collisionWithPipe height) (takeWhile 
 
 collisionWithPipe :: Height -> Pipe -> Bool
 collisionWithPipe birdHeight (Pipe h x) 
-    | x <= (-20+ 50/2) && x >= (-60 - 50/2) && onBadHeight = True
+    | x <= (-20+ pipeWidth/2) && x >= (-60 - pipeWidth/2) && onBadHeight = True
+    -- | x <= (-20+ 50/2) && x >= (-60 - 50/2) && onBadHeight = True
     | otherwise             = False
         where
             onBadHeight = birdHeight <= (h + 20) || birdHeight >= (h + 150 - 20)

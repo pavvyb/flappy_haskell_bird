@@ -75,8 +75,8 @@ main = do
 returnMovingBgd :: Float -> Picture
 returnMovingBgd seconds = translate (seconds/6) 0 compositeImage
                             where
-                              compositeImage = translate (-80) 0 (loadPicture "pictures/background.bmp")
-                                               <> translate 350 0 (loadPicture "pictures/background.bmp")
+                              compositeImage = translate (-350) 0 (loadPicture "pictures/background.bmp")
+                                               <> translate (100) 0 (loadPicture "pictures/background.bmp")
 
 returnMovingFloor :: Float -> Picture
 returnMovingFloor seconds = translate seconds 0 compositeImage

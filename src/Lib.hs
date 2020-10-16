@@ -5,6 +5,9 @@ module Lib
 
 import Graphics.Gloss
 import Graphics.Gloss.Interface.Pure.Game
+import Graphics.Gloss.Data.Bitmap
+import Graphics.Image.Processing
+import System.IO.Unsafe (unsafePerformIO)
 import System.Random
 
 someFunc :: IO ()
@@ -52,22 +55,36 @@ main = do
     play windowDisplay rose 60 (initialWorld g) drawingFunc inputHandler updateFunc
 
 drawingFunc :: World -> Picture
-drawingFunc (Game Wait _ _ bIndex, Bird height _, _)                = worldFloor <> chooseBird bIndex height
-drawingFunc (Game Progress score _ bIndex, Bird height _, pipes)    = worldFloor 
-                                                                        <> unionPicture (drawPipes pipes)
-                                                                        <> chooseBird bIndex height 
-                                                                        <> drawScore score
-drawingFunc (Game EndGame score bestScore bIndex, Bird height _, pipes) = worldFloor
-                                                                            <> unionPicture (drawPipes pipes) 
-                                                                            <> chooseBird bIndex height 
-                                                                            <> drawScoreBoard score bestScore
+drawingFunc (Game Wait _ _ bIndex, Bird height _, _)                = (loadPicture "pictures/background.bmp")
+                                                                      <> drawArrows
+                                                                      <> worldFloor 
+                                                                      <> chooseBird bIndex height
+drawingFunc (Game Progress score _ bIndex, Bird height _, pipes)    = (loadPicture "pictures/background.bmp")
+                                                                      <> worldFloor 
+                                                                      <> unionPicture (drawPipes pipes)
+                                                                      <> chooseBird bIndex height 
+                                                                      <> drawScore score
+drawingFunc (Game EndGame score bestScore bIndex, Bird height _, pipes) = (loadPicture "pictures/background.bmp")
+                                                                          <> worldFloor
+                                                                          <> unionPicture (drawPipes pipes) 
+                                                                          <> chooseBird bIndex height 
+                                                                          <> drawScoreBoard score bestScore
+
+
+loadPicture :: String -> Picture
+loadPicture path = unsafePerformIO $ loadBMP path
 
 birds :: Height -> [Picture]
 birds height = birdsPictures
     where
         birdsPictures = [ translate (-40) height (color red (circleSolid 20))
                         , translate (-40) height (color yellow (polygon [(-20, -20), (0, 20), (20, -20)]))
-                        , translate (-40) height (color black (rectangleSolid 40 40))]
+                        , translate (-40) height (color black (rectangleSolid 40 40))
+                        , translate (-40) height (loadPicture "pictures/blue.bmp")
+                        , translate (-40) height (loadPicture "pictures/red.bmp")
+                        , translate (-40) height (loadPicture "pictures/yellow.bmp")
+                        , translate (-40) height (loadPicture "pictures/haha.bmp")
+                        , translate (-40) height (loadPicture "pictures/lit.bmp")]
  
 chooseBird :: Int -> Height -> Picture
 chooseBird index height = (birds height)!!index
@@ -80,8 +97,20 @@ drawScoreBoard score bestScore = color orange (rectangleSolid 100 200)
                                 <>  translate (-8) (10) (scale 0.25 0.25 (Text (show score)))
                                 <>  translate (-8) (-40) (scale 0.25 0.25 (Text (show bestScore)))
 
+drawArrows :: Picture
+drawArrows = leftArrow <> rightArrow
+             where
+               preLeft = polygon [(-15, 0), (0, 20), (0, -20)]
+               preRight = polygon [(15, 0), (0, 20), (0, -20)]
+
+               colLeft = color white preLeft
+               colRight = color white preRight
+
+               leftArrow = translate (-100) 0 colLeft
+               rightArrow = translate 20 0 colRight
+
 worldFloor :: Picture
-worldFloor = translate 0 (-250) $ color azure $ rectangleSolid 500 100
+worldFloor = translate 0 (-250) $ loadPicture "pictures/floor.bmp"
 
 -- Pipe
 data Pipe = Pipe
@@ -139,11 +168,13 @@ drawPipe (Pipe heightFromFloor horizontalPosition) = bottomPipe <> topPipe
     where
         bHeight = if heightFromFloor <= 0 then (200 - abs (heightFromFloor)) else 200 + heightFromFloor
         bY = -200 + bHeight / 2
-        bottomPipe = translate horizontalPosition bY $ color green $ rectangleSolid pipeWidth bHeight
+        bottomPipe = translate horizontalPosition bY $ resize  Bilinear Edge (75, bHeight) (loadPicture "pictures/pipe.bmp")
+        -- bottomPipe = translate horizontalPosition bY $ color green $ rectangleSolid pipeWidth bHeight
 
         tHeight = 1000
         tY = -200 + bHeight + 150 + tHeight / 2
-        topPipe = translate horizontalPosition tY $ color green $ rectangleSolid pipeWidth tHeight
+        topPipe = translate horizontalPosition tY $ resize Bilinear Edge (75, tHeight) (loadPicture "pictures/pipe.bmp")
+        -- topPipe = translate horizontalPosition tY $ color green $ rectangleSolid pipeWidth tHeight
 
 unionPicture :: [Picture] -> Picture
 unionPicture []     = blank

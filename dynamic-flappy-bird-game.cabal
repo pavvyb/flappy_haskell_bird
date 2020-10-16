@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9de73a7501e5987df585c37ea4173c5ff6b8c4eceeb95b3e5a3605a63127ef1f
+-- hash: 8d0ccb4983a346aa689a6407b30d4d9501085572b0a1177608408682d2f59dc6
 
 name:           dynamic-flappy-bird-game
 version:        0.1.0.0
@@ -35,6 +35,7 @@ library
   build-depends:
       base >=4.7 && <5
     , gloss ==1.13.1.2
+    , hip ==1.5.6.0
     , random
   default-language: Haskell2010
 
@@ -49,6 +50,7 @@ executable dynamic-flappy-bird-game-exe
       base >=4.7 && <5
     , dynamic-flappy-bird-game
     , gloss ==1.13.1.2
+    , hip ==1.5.6.0
     , random
   default-language: Haskell2010
 
@@ -64,5 +66,6 @@ test-suite dynamic-flappy-bird-game-test
       base >=4.7 && <5
     , dynamic-flappy-bird-game
     , gloss ==1.13.1.2
+    , hip ==1.5.6.0
     , random
   default-language: Haskell2010

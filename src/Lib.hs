@@ -18,7 +18,7 @@ windowDisplay :: Display
 windowDisplay = InWindow "Dynamic Flappy Bird" (500, 600) (10, 10)
 
 -- | Type respresents the World of application.
-type World = (Game, Bird, [Pipe])
+type World = (Game, Bird, [Pipe], StdGen)
 
 -- | Flappy (and not only) bird. 
 data Bird = Bird 
@@ -66,27 +66,27 @@ initialPipes stdGen = map initialPipe (randomRs pipesAllowedHeights stdGen)
 
 -- | Initial world state.
 initialWorld :: StdGen -> World
-initialWorld g = (initialGame, initialBird, initialPipes g)
+initialWorld g = (initialGame, initialBird, initialPipes g, g)
 
 main :: IO ()
 main = do
     g <- newStdGen
-    play windowDisplay rose 60 (initialWorld g) drawingFunc inputHandler updateFunc
+    play windowDisplay rose 60 (initialWorld g) (drawingFunc) inputHandler updateFunc
 
 -- | Responsible for drawing each possible state in the game (in the modes: Wait, Progress, EndGame)
 drawingFunc :: World -> Picture
-drawingFunc (Game Wait _ _ bIndex, Bird height _, _)                = (loadPicture "pictures/background.bmp")
+drawingFunc (Game Wait _ _ bIndex, Bird height _, _, _)                = (loadPicture "pictures/background.bmp")
                                                                       <> drawArrows
                                                                       <> worldFloor 
                                                                       <> chooseBird bIndex height
-drawingFunc (Game Progress score _ bIndex, Bird height _, pipes)    = (loadPicture "pictures/background.bmp")
+drawingFunc (Game Progress score _ bIndex, Bird height _, pipes, g)    = (loadPicture "pictures/background.bmp")
                                                                       <> worldFloor 
-                                                                      <> unionPicture (drawPipes pipes)
+                                                                      <> unionPicture (drawPipes pipes g)
                                                                       <> chooseBird bIndex height 
                                                                       <> drawScore score
-drawingFunc (Game EndGame score bestScore bIndex, Bird height _, pipes) = (loadPicture "pictures/background.bmp")
+drawingFunc (Game EndGame score bestScore bIndex, Bird height _, pipes, g) = (loadPicture "pictures/background.bmp")
                                                                           <> worldFloor
-                                                                          <> unionPicture (drawPipes pipes) 
+                                                                          <> unionPicture (drawPipes pipes g) 
                                                                           <> chooseBird bIndex height 
                                                                           <> drawScoreBoard score bestScore
 
@@ -148,13 +148,13 @@ inputHandler :: Event -> World -> World
 -- | By KeySpace there is jump action done (depends on mode)
 inputHandler (EventKey (SpecialKey KeySpace) Down _ _) world = jump world
 -- | By KeyRight the switching to the right (between birds) is done (if possible)
-inputHandler (EventKey (SpecialKey KeyRight) Down _ _) (Game Wait score bestScore bIndex, Bird height x, pipes)
-    | bIndex < 0 || bIndex >= (length (birds height) - 1) = (Game Wait score bestScore bIndex, Bird height x, pipes)
-    | otherwise = (Game Wait score bestScore (bIndex + 1), Bird height x, pipes)
+inputHandler (EventKey (SpecialKey KeyRight) Down _ _) (Game Wait score bestScore bIndex, Bird height x, pipes, g)
+    | bIndex < 0 || bIndex >= (length (birds height) - 1) = (Game Wait score bestScore bIndex, Bird height x, pipes, g)
+    | otherwise = (Game Wait score bestScore (bIndex + 1), Bird height x, pipes, g)
 -- | By KeyLeft the switching to the right (between birds) is done (if possible)
-inputHandler (EventKey (SpecialKey KeyLeft) Down _ _) (Game Wait score bestScore bIndex, Bird height x, pipes)
-    | bIndex <= 0 || bIndex > (length (birds height) - 1) = (Game Wait score bestScore bIndex, Bird height x, pipes)
-    | otherwise = (Game Wait score bestScore( bIndex - 1), Bird height x, pipes) 
+inputHandler (EventKey (SpecialKey KeyLeft) Down _ _) (Game Wait score bestScore bIndex, Bird height x, pipes, g)
+    | bIndex <= 0 || bIndex > (length (birds height) - 1) = (Game Wait score bestScore bIndex, Bird height x, pipes, g)
+    | otherwise = (Game Wait score bestScore( bIndex - 1), Bird height x, pipes, g) 
 -- | Otherwise return same world was come as input.
 inputHandler _ w = w
 
@@ -163,9 +163,9 @@ inputHandler _ w = w
 -- On Progress mode bird jumps if possible.
 -- On EndGame mode switches to Wait mode
 jump :: World -> World
-jump (Game Wait _ bestScore bIndex, Bird height _, pipes)                 = (Game Progress 0 bestScore bIndex, Bird height 350, pipes)
-jump (Game Progress score bestScore bIndex, Bird height step, pipes)      = (Game Progress score bestScore bIndex, Bird height (if step < 0 then 350 else step), pipes)
-jump (Game EndGame  score bestScore bIndex, bird, pipes)                  = (Game Wait     score bestScore bIndex, bird, pipes)
+jump (Game Wait _ bestScore bIndex, Bird height _, pipes, g)                 = (Game Progress 0 bestScore bIndex, Bird height 350, pipes, g)
+jump (Game Progress score bestScore bIndex, Bird height step, pipes, g)      = (Game Progress score bestScore bIndex, Bird height (if step < 0 then 350 else step), pipes, g)
+jump (Game EndGame  score bestScore bIndex, bird, pipes, g)                  = (Game Wait     score bestScore bIndex, bird, pipes, g)
 
 -- | Responsible for checking collision with floor.
 -- Collision occures if the lowest part of bird is lower than (-200 + radius of bird)
@@ -190,12 +190,12 @@ pipesOnMap pipes = set 0 pipes
     set s ((Pipe h x) : pipes) = (Pipe h (x + s)) : set (s + x) pipes
 
 -- | Draws only pipe which are shown on window.
-drawPipes :: [Pipe] -> [Picture]
-drawPipes = map drawPipe . takeWhile (\(Pipe _ x) -> x < 250) . pipesOnMap
+drawPipes :: [Pipe] -> StdGen -> [Picture]
+drawPipes pipes g = map (drawPipe g) (takeWhile (\(Pipe _ x) -> x < 250) (pipesOnMap pipes))
 
 -- | Draws single pipe (its bottom and top parts using very complex mathematical computations.)
-drawPipe :: Pipe -> Picture
-drawPipe (Pipe heightFromFloor horizontalPosition) = bottomPipe <> topPipe
+drawPipe :: StdGen -> Pipe -> Picture
+drawPipe g (Pipe heightFromFloor horizontalPosition) = bottomPipe <> topPipe
     where
         bHeight = if heightFromFloor <= 0 then (200 - abs (heightFromFloor)) else 200 + heightFromFloor
         bY = -200 + bHeight / 2
@@ -203,8 +203,12 @@ drawPipe (Pipe heightFromFloor horizontalPosition) = bottomPipe <> topPipe
         bottomPipe = translate horizontalPosition bY $ color green $ rectangleSolid pipeWidth bHeight
 
         tHeight = 1000
-        tY = -200 + bHeight + (150) + tHeight / 2
-        -- float = randomRIO (1, 100)
+        tY = -200 + bHeight + fromIntegral gap + tHeight / 2
+        -- gap = randomR (1, 100)
+        -- gap :: Int
+        -- c = unsafePerformIO (getStdRandom (randomR (0, 9)))
+        gap :: Int
+        gap = (randomRs (50, 150) g)!!1
         -- topPipe = translate horizontalPosition tY $ resize Bilinear Edge (75, tHeight) (loadPicture "pictures/pipe.bmp")
         topPipe = translate horizontalPosition tY $ color green $ rectangleSolid pipeWidth tHeight
 
@@ -258,7 +262,7 @@ collisionWithPipe birdHeight (Pipe h x)
 
 -- | Responsible for updating the world.
 updateFunc :: Float -> World -> World
-updateFunc time (Game mode score bestScore bIndex, Bird height step, pipes) = world
+updateFunc time (Game mode score bestScore bIndex, Bird height step, pipes, g) = world
     where
         world
             | mode == Progress  = progressWorld -- Show the Progress mode state
@@ -271,19 +275,19 @@ updateFunc time (Game mode score bestScore bIndex, Bird height step, pipes) = wo
                     progressWorld
                         | stopFactor == False =                        (Game Progress newScore bestScore bIndex,
                                                                         Bird newHeight newStep,
-                                                                        updatePipes time pipes)
+                                                                        updatePipes time pipes, g)
                         | otherwise                                  = (Game EndGame newScore (if bestScore < newScore then newScore else bestScore) bIndex,
                                                                         Bird (-200 + 20) step,
-                                                                        updatePipes time pipes)
+                                                                        updatePipes time pipes, g)
                     -- | Stop factor function that is responsible for detecting collisions.
                     stopFactor :: Bool
                     stopFactor
                         | collisionWithPipes pipes newHeight || collisionWithFloor newHeight = True
                         | otherwise = False
-                    endGameWorld = (Game mode score bestScore bIndex, Bird height 0.4, pipes)
+                    endGameWorld = (Game mode score bestScore bIndex, Bird height 0.4, pipes, g)
 
                     -- | Wait game mode smoothing up and down falling.
-                    waitWorld    = (Game mode score bestScore bIndex, Bird (boundedHeight height + step) waitStep, tail (pipes))
+                    waitWorld    = (Game mode score bestScore bIndex, Bird (boundedHeight height + step) waitStep, tail (pipes), g)
                     boundedHeight h = if h < -8 then 0 else h
                     waitStep
                         | height > 8 = -0.4

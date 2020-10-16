@@ -52,7 +52,7 @@ main = do
     play windowDisplay rose 60 (initialWorld g) drawingFunc inputHandler updateFunc
 
 drawingFunc :: World -> Picture
-drawingFunc (Game Wait score bestScore bIndex, Bird height step, _) = chooseBird bIndex height <> worldFloor-- <> Text (show bIndex) --bird height <> worldFloor
+drawingFunc (Game Wait score bestScore bIndex, Bird height step, _) = chooseBird bIndex height <> worldFloor
 drawingFunc (Game Progress score bestScore bIndex, Bird height step, pipes) = chooseBird bIndex height <> worldFloor <> unionPicture (drawPipes pipes) <> drawScore score
 drawingFunc (Game EndGame score bestScore bIndex, Bird height step, pipes) = chooseBird bIndex height <> unionPicture (drawPipes pipes) <> drawScoreBoard score bestScore <>  worldFloor -- bird height <>
 
@@ -60,13 +60,11 @@ bird :: Height -> Picture
 bird height = translate (-40) height (color yellow (circleSolid 20))
 
 birds :: Height -> [Picture]
-birds height = bbirds
+birds height = birdsPictures
     where
-        bbirds = [ translate (-40) height (color red (circleSolid 20))
-                 , translate (-40) height (color yellow triangle)
-                --  , translate (-40) height (color yellow (circleSolid 20))
+        birdsPictures = [ translate (-40) height (color red (circleSolid 20))
+                 , translate (-40) height (color yellow (polygon [(-20, -20), (0, 20), (20, -20)]))
                  , translate (-40) height (color black (rectangleSolid 40 40))]
-        triangle = polygon [(-20, -20), (0, 20), (20, -20)]
  
 chooseBird :: Int -> Height -> Picture
 chooseBird index height = (birds height)!!index

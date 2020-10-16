@@ -25,13 +25,14 @@ type Step = Float
 data Game = Game
     { mode      :: GameMode 
     , score     :: Score
-    , bestScore :: Score}
+    , bestScore :: Score
+    , bIndex    :: Int }
 
 type Score = Int
 data GameMode = Wait | Progress | EndGame deriving (Eq)
 
 initialGame :: Game
-initialGame = Game { mode = Wait, score = 0, bestScore = 0 }
+initialGame = Game { mode = Wait, score = 0, bestScore = 0, bIndex = 0 }
 
 initialBird :: Bird
 initialBird = Bird { height = 0, step = 0.4 }
@@ -51,15 +52,27 @@ main = do
     play windowDisplay rose 60 (initialWorld g) drawingFunc inputHandler updateFunc
 
 drawingFunc :: World -> Picture
-drawingFunc (Game Wait score bestScore, Bird height step, _) = bird height <> worldFloor
-drawingFunc (Game Progress score bestScore, Bird height step, pipes) = bird height <> worldFloor <> unionPicture (drawPipes pipes) <> drawScore score
-drawingFunc (Game EndGame score bestScore, Bird height step, pipes) = worldFloor <> unionPicture (drawPipes pipes) <> drawScoreBoard score bestScore <> bird height 
+drawingFunc (Game Wait score bestScore bIndex, Bird height step, _) = chooseBird bIndex height <> worldFloor-- <> Text (show bIndex) --bird height <> worldFloor
+drawingFunc (Game Progress score bestScore bIndex, Bird height step, pipes) = chooseBird bIndex height <> worldFloor <> unionPicture (drawPipes pipes) <> drawScore score
+drawingFunc (Game EndGame score bestScore bIndex, Bird height step, pipes) = chooseBird bIndex height <> unionPicture (drawPipes pipes) <> drawScoreBoard score bestScore <>  worldFloor -- bird height <>
 
 bird :: Height -> Picture
 bird height = translate (-40) height (color yellow (circleSolid 20))
 
+birds :: Height -> [Picture]
+birds height = bbirds
+    where
+        bbirds = [ translate (-40) height (color red (circleSolid 20))
+                 , translate (-40) height (color yellow triangle)
+                --  , translate (-40) height (color yellow (circleSolid 20))
+                 , translate (-40) height (color black (rectangleSolid 40 40))]
+        triangle = polygon [(-20, -20), (0, 20), (20, -20)]
+ 
+chooseBird :: Int -> Height -> Picture
+chooseBird index height = (birds height)!!index
+
 drawScore :: Int -> Picture
-drawScore score = scale 0.5 0.5 (translate (-35) 80 (Text (show score)))
+drawScore score = scale 0.5 0.5 (translate (-35) 220 (Text (show score)))
 
 drawScoreBoard :: Score -> Score -> Picture
 drawScoreBoard score bestScore = color orange (rectangleSolid 100 200) 
@@ -77,12 +90,18 @@ data Pipe = Pipe
 
 inputHandler :: Event -> World -> World
 inputHandler (EventKey (SpecialKey KeySpace) Down _ _) world = jump world
+inputHandler (EventKey (SpecialKey KeyRight) Down _ _) (Game Wait score bestScore bIndex, Bird height x, pipes)
+    | bIndex < 0 || bIndex >= (length (birds height) - 1) = (Game Wait score bestScore bIndex, Bird height x, pipes)
+    | otherwise = (Game Wait score bestScore (bIndex + 1), Bird height x, pipes)
+inputHandler (EventKey (SpecialKey KeyLeft) Down _ _) (Game Wait score bestScore bIndex, Bird height x, pipes)
+    | bIndex <= 0 || bIndex > (length (birds height) - 1) = (Game Wait score bestScore bIndex, Bird height x, pipes)
+    | otherwise = (Game Wait score bestScore( bIndex - 1), Bird height x, pipes) 
 inputHandler _ w = w
 
 jump :: World -> World
-jump (Game Wait _ bestScore, Bird height _, pipes)                 = (Game Progress 0 bestScore, Bird height 350, pipes)
-jump (Game Progress score bestScore, Bird height step, pipes)      = (Game Progress score bestScore, Bird height (if step < 0 then 350 else step), pipes)
-jump (Game EndGame  score bestScore, bird, pipes)                  = (Game Wait     score bestScore, bird, pipes)
+jump (Game Wait _ bestScore bIndex, Bird height _, pipes)                 = (Game Progress 0 bestScore bIndex, Bird height 350, pipes)
+jump (Game Progress score bestScore bIndex, Bird height step, pipes)      = (Game Progress score bestScore bIndex, Bird height (if step < 0 then 350 else step), pipes)
+jump (Game EndGame  score bestScore bIndex, bird, pipes)                  = (Game Wait     score bestScore bIndex, bird, pipes)
 
 collisionWithFloor :: Height -> Bool
 collisionWithFloor height
@@ -171,7 +190,7 @@ collisionWithPipe birdHeight (Pipe h x)
                         rightPipeX = x + pipeWidth / 2
 
 updateFunc :: Float -> World -> World
-updateFunc time (Game mode score bestScore, Bird height step, pipes) = world
+updateFunc time (Game mode score bestScore bIndex, Bird height step, pipes) = world
     where
         world
             | mode == Progress  = progressWorld
@@ -182,10 +201,10 @@ updateFunc time (Game mode score bestScore, Bird height step, pipes) = world
                     newStep = step - time * 1000
                     newScore = updateScore pipes score time
                     progressWorld
-                        | stopFactor == False =                        (Game Progress newScore bestScore,
+                        | stopFactor == False =                        (Game Progress newScore bestScore bIndex,
                                                                         Bird newHeight newStep,
                                                                         updatePipes time pipes)
-                        | otherwise                                  = (Game EndGame newScore (if bestScore < newScore then newScore else bestScore),
+                        | otherwise                                  = (Game EndGame newScore (if bestScore < newScore then newScore else bestScore) bIndex,
                                                                         Bird (-200 + 20) step,
                                                                         updatePipes time pipes)
                     stopFactor :: Bool
@@ -194,8 +213,8 @@ updateFunc time (Game mode score bestScore, Bird height step, pipes) = world
                         | otherwise = False
 
 
-                    endGameWorld = (Game mode score bestScore, Bird height 0.4, pipes)
-                    waitWorld    = (Game mode score bestScore, Bird (boundedHeight height + step) waitStep, tail (pipes))
+                    endGameWorld = (Game mode score bestScore bIndex, Bird height 0.4, pipes)
+                    waitWorld    = (Game mode score bestScore bIndex, Bird (boundedHeight height + step) waitStep, tail (pipes))
                     boundedHeight h = if h < -8 then 0 else h
                     waitStep
                         | height > 8 = -0.4

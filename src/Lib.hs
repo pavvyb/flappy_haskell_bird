@@ -204,11 +204,6 @@ drawPipe (Pipe heightFromFloor horizontalPosition gap) = bottomPipe <> topPipe
 
         tHeight = 1000
         tY = -200 + bHeight + gap + tHeight / 2
-        -- gap = randomR (1, 100)
-        -- gap :: Int
-        -- c = unsafePerformIO (getStdRandom (randomR (0, 9)))
-        -- gap :: Int
-        -- gap = (randomRs (50, 150) g)!!1
         -- topPipe = translate horizontalPosition tY $ resize Bilinear Edge (75, tHeight) (loadPicture "pictures/pipe.bmp")
         topPipe = translate horizontalPosition tY $ color green $ rectangleSolid pipeWidth tHeight
 
@@ -274,7 +269,7 @@ updateFunc time (Game mode score bestScore bIndex, Bird height step, pipes) = wo
                     newStep = step - time * 1000 -- calculate the step
                     newScore = updateScore pipes score time -- calculate new Score
                     progressWorld
-                        | stopFactor == False =                        (Game Progress newScore bestScore bIndex,
+                        | not stopFactor =                        (Game Progress newScore bestScore bIndex,
                                                                         Bird newHeight newStep,
                                                                         updatePipes time pipes)
                         | otherwise                                  = (Game EndGame newScore (if bestScore < newScore then newScore else bestScore) bIndex,

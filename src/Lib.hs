@@ -52,19 +52,22 @@ main = do
     play windowDisplay rose 60 (initialWorld g) drawingFunc inputHandler updateFunc
 
 drawingFunc :: World -> Picture
-drawingFunc (Game Wait score bestScore bIndex, Bird height step, _) = chooseBird bIndex height <> worldFloor
-drawingFunc (Game Progress score bestScore bIndex, Bird height step, pipes) = chooseBird bIndex height <> worldFloor <> unionPicture (drawPipes pipes) <> drawScore score
-drawingFunc (Game EndGame score bestScore bIndex, Bird height step, pipes) = chooseBird bIndex height <> unionPicture (drawPipes pipes) <> drawScoreBoard score bestScore <>  worldFloor -- bird height <>
-
-bird :: Height -> Picture
-bird height = translate (-40) height (color yellow (circleSolid 20))
+drawingFunc (Game Wait _ _ bIndex, Bird height _, _)                = worldFloor <> chooseBird bIndex height
+drawingFunc (Game Progress score _ bIndex, Bird height _, pipes)    = worldFloor 
+                                                                        <> unionPicture (drawPipes pipes)
+                                                                        <> chooseBird bIndex height 
+                                                                        <> drawScore score
+drawingFunc (Game EndGame score bestScore bIndex, Bird height _, pipes) = worldFloor
+                                                                            <> unionPicture (drawPipes pipes) 
+                                                                            <> chooseBird bIndex height 
+                                                                            <> drawScoreBoard score bestScore
 
 birds :: Height -> [Picture]
 birds height = birdsPictures
     where
         birdsPictures = [ translate (-40) height (color red (circleSolid 20))
-                 , translate (-40) height (color yellow (polygon [(-20, -20), (0, 20), (20, -20)]))
-                 , translate (-40) height (color black (rectangleSolid 40 40))]
+                        , translate (-40) height (color yellow (polygon [(-20, -20), (0, 20), (20, -20)]))
+                        , translate (-40) height (color black (rectangleSolid 40 40))]
  
 chooseBird :: Int -> Height -> Picture
 chooseBird index height = (birds height)!!index

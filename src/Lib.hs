@@ -72,14 +72,26 @@ main = do
     g <- newStdGen
     play windowDisplay rose 60 (initialWorld g) drawingFunc inputHandler updateFunc
 
+returnMovingBgd :: Float -> Picture
+returnMovingBgd seconds = translate (seconds/6) 0 compositeImage
+                            where
+                              compositeImage = translate (-80) 0 (loadPicture "pictures/background.bmp")
+                                               <> translate 350 0 (loadPicture "pictures/background.bmp")
+
+returnMovingFloor :: Float -> Picture
+returnMovingFloor seconds = translate seconds 0 compositeImage
+                            where
+                              compositeImage = translate (-100) (-250) (loadPicture "pictures/floor.bmp")
+                                               <> translate 900 (-250) (loadPicture "pictures/floor.bmp")
+
 -- | Responsible for drawing each possible state in the game (in the modes: Wait, Progress, EndGame)
 drawingFunc :: World -> Picture
 drawingFunc (Game Wait _ _ bIndex, Bird height _, _)                = (loadPicture "pictures/background.bmp")
                                                                       <> drawArrows
                                                                       <> worldFloor 
                                                                       <> chooseBird bIndex height
-drawingFunc (Game Progress score _ bIndex, Bird height _, pipes)    = (loadPicture "pictures/background.bmp")
-                                                                      <> worldFloor 
+drawingFunc (Game Progress score _ bIndex, Bird height time, pipes)    = returnMovingBgd time
+                                                                      <> returnMovingFloor time 
                                                                       <> unionPicture (drawPipes pipes)
                                                                       <> chooseBird bIndex height 
                                                                       <> drawScore score

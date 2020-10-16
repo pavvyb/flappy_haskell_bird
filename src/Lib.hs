@@ -6,7 +6,7 @@ module Lib
 import Graphics.Gloss
 import Graphics.Gloss.Interface.Pure.Game
 import Graphics.Gloss.Data.Bitmap
-import Graphics.Image.Processing
+-- import Graphics.Image.Processing
 import System.IO.Unsafe (unsafePerformIO)
 import System.Random
 
@@ -168,13 +168,13 @@ drawPipe (Pipe heightFromFloor horizontalPosition) = bottomPipe <> topPipe
     where
         bHeight = if heightFromFloor <= 0 then (200 - abs (heightFromFloor)) else 200 + heightFromFloor
         bY = -200 + bHeight / 2
-        bottomPipe = translate horizontalPosition bY $ resize  Bilinear Edge (75, bHeight) (loadPicture "pictures/pipe.bmp")
-        -- bottomPipe = translate horizontalPosition bY $ color green $ rectangleSolid pipeWidth bHeight
+        -- bottomPipe = translate horizontalPosition bY $ resize  Bilinear Edge (75, bHeight) (loadPicture "pictures/pipe.bmp")
+        bottomPipe = translate horizontalPosition bY $ color green $ rectangleSolid pipeWidth bHeight
 
         tHeight = 1000
         tY = -200 + bHeight + 150 + tHeight / 2
-        topPipe = translate horizontalPosition tY $ resize Bilinear Edge (75, tHeight) (loadPicture "pictures/pipe.bmp")
-        -- topPipe = translate horizontalPosition tY $ color green $ rectangleSolid pipeWidth tHeight
+        -- topPipe = translate horizontalPosition tY $ resize Bilinear Edge (75, tHeight) (loadPicture "pictures/pipe.bmp")
+        topPipe = translate horizontalPosition tY $ color green $ rectangleSolid pipeWidth tHeight
 
 unionPicture :: [Picture] -> Picture
 unionPicture []     = blank

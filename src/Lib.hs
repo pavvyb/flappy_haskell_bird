@@ -9,6 +9,7 @@ import Graphics.Gloss.Data.Bitmap
 -- import Graphics.Image.Processing
 import System.IO.Unsafe (unsafePerformIO)
 import System.Random
+import System.IO.Unsafe  -- be careful! 
 
 someFunc :: IO ()
 someFunc = main
@@ -57,7 +58,7 @@ initialBird = Bird { height = 0, step = 0.4 }
 
 -- | Initial pipe with its X shift
 initialPipe :: Height -> Pipe
-initialPipe height = Pipe height 300
+initialPipe height = Pipe height (height + 300)
 
 -- | Initializes endless pipes in the game.
 initialPipes :: StdGen -> [Pipe]
@@ -202,7 +203,8 @@ drawPipe (Pipe heightFromFloor horizontalPosition) = bottomPipe <> topPipe
         bottomPipe = translate horizontalPosition bY $ color green $ rectangleSolid pipeWidth bHeight
 
         tHeight = 1000
-        tY = -200 + bHeight + 150 + tHeight / 2
+        tY = -200 + bHeight + (150) + tHeight / 2
+        -- float = randomRIO (1, 100)
         -- topPipe = translate horizontalPosition tY $ resize Bilinear Edge (75, tHeight) (loadPicture "pictures/pipe.bmp")
         topPipe = translate horizontalPosition tY $ color green $ rectangleSolid pipeWidth tHeight
 

@@ -16,8 +16,12 @@ someFunc = main
 windowDisplay :: Display
 windowDisplay = InWindow "Dynamic Flappy Bird" (500, 600) (10, 10)
 
+data Background = Background
+    { pic   :: Picture
+    , bStep :: Step }
+
 -- | Type respresents the World of application.
-type World = (Game, Bird, [Pipe])
+type World = (Game, Bird, [Pipe], Step)
 
 -- | Flappy (and not only) bird. 
 data Bird = Bird 
@@ -65,7 +69,7 @@ initialPipes stdGen = map initialPipe (randomRs pipesAllowedHeights stdGen)
 
 -- | Initial world state.
 initialWorld :: StdGen -> World
-initialWorld g = (initialGame, initialBird, initialPipes g)
+initialWorld g = (initialGame, initialBird, initialPipes g, 0)
 
 main :: IO ()
 main = do
@@ -73,29 +77,34 @@ main = do
     play windowDisplay rose 60 (initialWorld g) drawingFunc inputHandler updateFunc
 
 returnMovingBgd :: Float -> Picture
-returnMovingBgd seconds = translate (seconds/6) 0 compositeImage
+returnMovingBgd seconds = translate (fromIntegral ((floor (seconds/6)) `mod` 500) - 350) 0 compositeImage
                             where
-                              compositeImage = translate (-350) 0 (loadPicture "pictures/background.bmp")
-                                               <> translate (100) 0 (loadPicture "pictures/background.bmp")
+                                compositeImage = translate (-350) 0 (loadPicture "pictures/background.bmp")
+                                               <> translate (150) 0 (loadPicture "pictures/background.bmp")
+                                               <> translate (650) 0 (loadPicture "pictures/background.bmp")
+                                            --    <> translate (1150) 0 (loadPicture "pictures/background.bmp")
+                                            --    <> translate (1650) 0 (loadPicture "pictures/background.bmp")
+
 
 returnMovingFloor :: Float -> Picture
-returnMovingFloor seconds = translate seconds 0 compositeImage
+returnMovingFloor seconds = translate (fromIntegral ((floor (seconds/6)) `mod` 1000) - 350) 0 compositeImage
                             where
-                              compositeImage = translate (-100) (-250) (loadPicture "pictures/floor.bmp")
-                                               <> translate 900 (-250) (loadPicture "pictures/floor.bmp")
+                              compositeImage = translate (-400) (-250) (loadPicture "pictures/floor.bmp")
+                                               <> translate 600 (-250) (loadPicture "pictures/floor.bmp")
+                                               <> translate 1600 (-250) (loadPicture "pictures/floor.bmp")
 
 -- | Responsible for drawing each possible state in the game (in the modes: Wait, Progress, EndGame)
 drawingFunc :: World -> Picture
-drawingFunc (Game Wait _ _ bIndex, Bird height _, _)                = (loadPicture "pictures/background.bmp")
+drawingFunc (Game Wait _ _ bIndex, Bird height _, _, backgroundStep) = returnMovingBgd backgroundStep --(loadPicture "pictures/background.bmp")
                                                                       <> drawArrows
                                                                       <> worldFloor 
                                                                       <> chooseBird bIndex height
-drawingFunc (Game Progress score _ bIndex, Bird height time, pipes)    = returnMovingBgd time
-                                                                      <> returnMovingFloor time 
+drawingFunc (Game Progress score _ bIndex, Bird height time, pipes, backgroundStep)    = returnMovingBgd backgroundStep
+                                                                      <> returnMovingFloor backgroundStep 
                                                                       <> unionPicture (drawPipes pipes)
                                                                       <> chooseBird bIndex height 
                                                                       <> drawScore score
-drawingFunc (Game EndGame score bestScore bIndex, Bird height _, pipes) = (loadPicture "pictures/background.bmp")
+drawingFunc (Game EndGame score bestScore bIndex, Bird height _, pipes, backgroundStep) = returnMovingBgd backgroundStep -- (loadPicture "pictures/background.bmp")
                                                                           <> worldFloor
                                                                           <> unionPicture (drawPipes pipes) 
                                                                           <> chooseBird bIndex height 
@@ -159,13 +168,13 @@ inputHandler :: Event -> World -> World
 -- | By KeySpace there is jump action done (depends on mode)
 inputHandler (EventKey (SpecialKey KeySpace) Down _ _) world = jump world
 -- | By KeyRight the switching to the right (between birds) is done (if possible)
-inputHandler (EventKey (SpecialKey KeyRight) Down _ _) (Game Wait score bestScore bIndex, Bird height x, pipes)
-    | bIndex < 0 || bIndex >= (length (birds height) - 1) = (Game Wait score bestScore bIndex, Bird height x, pipes)
-    | otherwise = (Game Wait score bestScore (bIndex + 1), Bird height x, pipes)
+inputHandler (EventKey (SpecialKey KeyRight) Down _ _) (Game Wait score bestScore bIndex, Bird height x, pipes, backgroundStep)
+    | bIndex < 0 || bIndex >= (length (birds height) - 1) = (Game Wait score bestScore bIndex, Bird height x, pipes, backgroundStep)
+    | otherwise = (Game Wait score bestScore (bIndex + 1), Bird height x, pipes, backgroundStep)
 -- | By KeyLeft the switching to the right (between birds) is done (if possible)
-inputHandler (EventKey (SpecialKey KeyLeft) Down _ _) (Game Wait score bestScore bIndex, Bird height x, pipes)
-    | bIndex <= 0 || bIndex > (length (birds height) - 1) = (Game Wait score bestScore bIndex, Bird height x, pipes)
-    | otherwise = (Game Wait score bestScore( bIndex - 1), Bird height x, pipes) 
+inputHandler (EventKey (SpecialKey KeyLeft) Down _ _) (Game Wait score bestScore bIndex, Bird height x, pipes, backgroundStep)
+    | bIndex <= 0 || bIndex > (length (birds height) - 1) = (Game Wait score bestScore bIndex, Bird height x, pipes, backgroundStep)
+    | otherwise = (Game Wait score bestScore( bIndex - 1), Bird height x, pipes, backgroundStep) 
 -- | Otherwise return same world was come as input.
 inputHandler _ w = w
 
@@ -174,9 +183,9 @@ inputHandler _ w = w
 -- On Progress mode bird jumps if possible.
 -- On EndGame mode switches to Wait mode
 jump :: World -> World
-jump (Game Wait _ bestScore bIndex, Bird height _, pipes)                 = (Game Progress 0 bestScore bIndex, Bird height 350, pipes)
-jump (Game Progress score bestScore bIndex, Bird height step, pipes)      = (Game Progress score bestScore bIndex, Bird height (if step < 0 then 350 else step), pipes)
-jump (Game EndGame  score bestScore bIndex, bird, pipes)                  = (Game Wait     score bestScore bIndex, bird, pipes)
+jump (Game Wait _ bestScore bIndex, Bird height _, pipes, backgroundStep)                 = (Game Progress 0 bestScore bIndex, Bird height 350, pipes, backgroundStep)
+jump (Game Progress score bestScore bIndex, Bird height step, pipes, backgroundStep)      = (Game Progress score bestScore bIndex, Bird height (if step < 0 then 350 else step), pipes, backgroundStep)
+jump (Game EndGame  score bestScore bIndex, bird, pipes, backgroundStep)                  = (Game Wait     score bestScore bIndex, bird, pipes, backgroundStep)
 
 -- | Responsible for checking collision with floor.
 -- Collision occures if the lowest part of bird is lower than (-200 + radius of bird)
@@ -268,7 +277,7 @@ collisionWithPipe birdHeight (Pipe h x)
 
 -- | Responsible for updating the world.
 updateFunc :: Float -> World -> World
-updateFunc time (Game mode score bestScore bIndex, Bird height step, pipes) = world
+updateFunc time (Game mode score bestScore bIndex, Bird height step, pipes, backgroundStep) = world
     where
         world
             | mode == Progress  = progressWorld -- Show the Progress mode state
@@ -281,19 +290,19 @@ updateFunc time (Game mode score bestScore bIndex, Bird height step, pipes) = wo
                     progressWorld
                         | stopFactor == False =                        (Game Progress newScore bestScore bIndex,
                                                                         Bird newHeight newStep,
-                                                                        updatePipes time pipes)
+                                                                        updatePipes time pipes, backgroundStep - time * 1000)
                         | otherwise                                  = (Game EndGame newScore (if bestScore < newScore then newScore else bestScore) bIndex,
                                                                         Bird (-200 + 20) step,
-                                                                        updatePipes time pipes)
+                                                                        updatePipes time pipes, backgroundStep - time * 1000)
                     -- | Stop factor function that is responsible for detecting collisions.
                     stopFactor :: Bool
                     stopFactor
                         | collisionWithPipes pipes newHeight || collisionWithFloor newHeight = True
                         | otherwise = False
-                    endGameWorld = (Game mode score bestScore bIndex, Bird height 0.4, pipes)
+                    endGameWorld = (Game mode score bestScore bIndex, Bird height 0.4, pipes, backgroundStep)
 
                     -- | Wait game mode smoothing up and down falling.
-                    waitWorld    = (Game mode score bestScore bIndex, Bird (boundedHeight height + step) waitStep, tail (pipes))
+                    waitWorld    = (Game mode score bestScore bIndex, Bird (boundedHeight height + step) waitStep, tail (pipes), backgroundStep)
                     boundedHeight h = if h < -8 then 0 else h
                     waitStep
                         | height > 8 = -0.4

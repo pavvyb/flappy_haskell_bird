@@ -61,7 +61,7 @@ initialBird = Bird { height = 0, step = 0.4 }
 
 -- | Initial pipe with its X shift
 initialPipe :: Height -> Pipe
-initialPipe height = Pipe height 300
+initialPipe height = Pipe height (height + 300) (height + 200)
 
 -- | Initializes endless pipes in the game.
 initialPipes :: StdGen -> [Pipe]
@@ -74,7 +74,7 @@ initialWorld g = (initialGame, initialBird, initialPipes g, 0, 0)
 main :: IO ()
 main = do
     g <- newStdGen
-    play windowDisplay rose 60 (initialWorld g) drawingFunc inputHandler updateFunc
+    play windowDisplay rose 60 (initialWorld g) (drawingFunc) inputHandler updateFunc
 
 returnMovingBgd :: Float -> Picture
 returnMovingBgd seconds = translate (fromIntegral ((floor (seconds/20)) `mod` 500) - 350) 0 compositeImage
@@ -161,8 +161,9 @@ worldFloor = translate 0 (-250) $ loadPicture "pictures/floor.bmp"
 
 -- | Pipe data. Each pipe contain height from floor and horizontal position (shift).
 data Pipe = Pipe
-    { heightFromFloor :: Height
-    , horizontalPosition :: Float}
+    { heightFromFloor       :: Height
+    , horizontalPosition    :: Float
+    , gapSize               :: Float }
 
 -- | Input handler responsible for handling the keys to control the game.
 inputHandler :: Event -> World -> World
@@ -208,15 +209,15 @@ pipesOnMap :: [Pipe] -> [Pipe]
 pipesOnMap pipes = set 0 pipes
   where
     set _ []            = []
-    set s ((Pipe h x) : pipes) = (Pipe h (x + s)) : set (s + x) pipes
+    set s ((Pipe h x gap) : pipes) = (Pipe h (x + s) gap) : set (s + x) pipes
 
 -- | Draws only pipe which are shown on window.
 drawPipes :: [Pipe] -> [Picture]
-drawPipes = map drawPipe . takeWhile (\(Pipe _ x) -> x < 250) . pipesOnMap
+drawPipes pipes = map drawPipe (takeWhile (\(Pipe _ x _) -> x < 250) (pipesOnMap pipes))
 
 -- | Draws single pipe (its bottom and top parts using very complex mathematical computations.)
 drawPipe :: Pipe -> Picture
-drawPipe (Pipe heightFromFloor horizontalPosition) = bottomPipe <> topPipe
+drawPipe (Pipe heightFromFloor horizontalPosition gap) = bottomPipe <> topPipe
     where
         bHeight = if heightFromFloor <= 0 then (200 - abs (heightFromFloor)) else 200 + heightFromFloor
         bY = -200 + bHeight / 2
@@ -224,7 +225,7 @@ drawPipe (Pipe heightFromFloor horizontalPosition) = bottomPipe <> topPipe
         bottomPipe = translate horizontalPosition bY $ color green $ rectangleSolid pipeWidth bHeight
 
         tHeight = 1000
-        tY = -200 + bHeight + 150 + tHeight / 2
+        tY = -200 + bHeight + gap + tHeight / 2
         -- topPipe = translate horizontalPosition tY $ resize Bilinear Edge (75, tHeight) (loadPicture "pictures/pipe.bmp")
         topPipe = translate horizontalPosition tY $ color green $ rectangleSolid pipeWidth tHeight
 
@@ -236,9 +237,9 @@ unionPicture (x:xs)     = x <> unionPicture xs
 -- | Update pipes on World.
 updatePipes :: Float -> [Pipe] -> [Pipe]
 updatePipes _ [] = []
-updatePipes time ((Pipe height x) : pipes)
+updatePipes time ((Pipe height x gap) : pipes)
   | currentX > (x - (-250) + pipeWidth)  = updatePipes (time - x / 150) pipes
-  | otherwise = (Pipe height (x - currentX)) : pipes
+  | otherwise = (Pipe height (x - currentX) gap) : pipes
   where
     currentX  = time * 150
 
@@ -252,21 +253,22 @@ updateScore pipes currentScore time
             passed :: Bool
             passed = not (null (takeWhile now (dropWhile was (pipesOnMap pipes))))
             now :: Pipe -> Bool
-            now (Pipe _ x) = x - time * 150 < -20
+            now (Pipe _ x _) = x - time * 150 < -20
             was :: Pipe -> Bool
-            was (Pipe _ x)= x < -20
+            was (Pipe _ x _)= x < -20
 
 -- | Responsible for checking collisions of bird with that are displayed on window screen.
 collisionWithPipes :: [Pipe] -> Height -> Bool
-collisionWithPipes pipes height = or (map (collisionWithPipe height) (takeWhile (\(Pipe _ x) -> x < 250) (pipesOnMap pipes)))
+collisionWithPipes pipes height = or (map (collisionWithPipe height) (takeWhile (\(Pipe _ x _) -> x < 250) (pipesOnMap pipes)))
 
 -- | Responsible for checking collisions of bird with single pipe (again using very complex mathematical computations.)
 collisionWithPipe :: Height -> Pipe -> Bool
-collisionWithPipe birdHeight (Pipe h x) 
+collisionWithPipe birdHeight (Pipe h x gap) 
     | onBadX && onBadHeight = True
     | otherwise             = False
         where
-            onBadHeight = birdHeight <= (h + 20) || birdHeight >= (h + 150 - 20)
+            onBadHeight = birdHeight <= (h + 20) || birdHeight >= (h + gap - 20)
+            -- onBadHeight = birdHeight <= (h + 20) || birdHeight >= (h + 150 - 20)
             onBadX
                 | leftPipeX <= badMaxX && rightPipeX >= badMinX = True
                 | otherwise                     = False
@@ -289,7 +291,7 @@ updateFunc time (Game mode score bestScore bIndex, Bird height step, pipes, back
                     newStep = step - time * 1000 -- calculate the step
                     newScore = updateScore pipes score time -- calculate new Score
                     progressWorld
-                        | stopFactor == False =                        (Game Progress newScore bestScore bIndex,
+                        | not stopFactor =                        (Game Progress newScore bestScore bIndex,
                                                                         Bird newHeight newStep,
                                                                         updatePipes time pipes, backgroundStep - time * 1000, floorStep - time * 150)
                         | otherwise                                  = (Game EndGame newScore (if bestScore < newScore then newScore else bestScore) bIndex,
